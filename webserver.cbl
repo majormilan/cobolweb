@@ -26,7 +26,9 @@
        01  FILE-OK           PIC X VALUE 'N'.
        01  I                 PIC 9(6).
        01  MIME-TYPE         PIC X(50).
-       01  FILE-EXTENSION    PIC X(5).
+       01  FILE-EXTENSION    PIC X(10).
+       01  TRIMMED-EXTENSION PIC X(10).
+       01  TRIMMED-LOOKUP    PIC X(10).
        01  BUFFER            PIC X(1024).
        01  REQUEST-METHOD    PIC X(10).
        01  REQUEST-PATH      PIC X(255).
@@ -40,8 +42,6 @@
        01  SOCK-STREAM       PIC S9(4) COMP-5 VALUE 1.
        01  IP-PROTO          PIC S9(4) COMP-5 VALUE 0.
        01  SERVER-SOCKET     PIC S9(4) COMP-5 VALUE 0.
-       01  TEMP-FILE-EXTENSION  PIC X(10).
-       01  TEMP-EXTENSION    PIC X(10).
        01  CLIENT-SOCKET     PIC S9(4) COMP-5 VALUE 0.
        01  MY-PORT-VALUE     PIC S9(4) COMP-5.
        01  MY-ADDR.
@@ -51,11 +51,12 @@
            05  FILLER        PIC X(8) VALUE LOW-VALUE.
        01  ERROR-CODE        PIC 9(3).
        01  RESPONSE          PIC X(4096) VALUE SPACES.
-       01  BUFFER-OFFSET     PIC 9(8) VALUE 1.
-       01  CHUNK-SIZE        PIC 9(8) VALUE 4096.
-       01  TOTAL-BYTES-SENT  PIC 9(8) VALUE 0.
        01  DEFAULT-MIME      PIC X(24) VALUE "application/octet-stream".
        01  DEFAULT-PAGE      PIC X(11) VALUE "/index.html".
+       01  NORMALIZED-EXT     PIC X(10).
+       01  NORMALIZED-LOOKUP  PIC X(10).
+       01  ACTUAL-LEN         PIC 9(2).
+       01  LOOKUP-LEN         PIC 9(2).
        01  MIME-TYPE-LOOKUP.
            05  MIME-COUNT    PIC 9(2) VALUE 10.
            05  MIME-ENTRY OCCURS 10 TIMES.
@@ -264,17 +265,34 @@
            PERFORM DETERMINE-MIME-TYPE.
            
        DETERMINE-MIME-TYPE.
-        DISPLAY "Determining MIME: '" FILE-EXTENSION "'"
-        MOVE DEFAULT-MIME TO MIME-TYPE
-        PERFORM VARYING I FROM 1 BY 1 UNTIL I > MIME-COUNT
-         IF FUNCTION LOWER-CASE(FUNCTION TRIM(FILE-EXTENSION)) = 
-           FUNCTION LOWER-CASE(FUNCTION TRIM(EXTENSION(I)))
-            MOVE MIME(I) TO MIME-TYPE
-            DISPLAY "MIME type set to: " MIME-TYPE
-            EXIT PERFORM
-         END-IF
-        END-PERFORM
-        DISPLAY "Final MIME type: " MIME-TYPE.
+           DISPLAY "Determining MIME: '" FILE-EXTENSION "' (Length: " 
+               FUNCTION LENGTH(FILE-EXTENSION) ")"
+
+           MOVE DEFAULT-MIME TO MIME-TYPE
+
+           MOVE FILE-EXTENSION TO NORMALIZED-EXT
+           INSPECT NORMALIZED-EXT REPLACING TRAILING SPACES BY LOW-VALUE
+           COMPUTE ACTUAL-LEN = FUNCTION LENGTH(NORMALIZED-EXT)
+
+           DISPLAY "Normalized file extension: '" NORMALIZED-EXT 
+               "' (Length: " ACTUAL-LEN ")"
+
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > MIME-COUNT
+               MOVE EXTENSION(I) TO NORMALIZED-LOOKUP
+       INSPECT NORMALIZED-LOOKUP REPLACING TRAILING SPACES BY LOW-VALUE
+               COMPUTE LOOKUP-LEN = FUNCTION LENGTH(NORMALIZED-LOOKUP)
+
+               DISPLAY "Comparing with MIME entry[" I "]: '"
+                   NORMALIZED-LOOKUP "' (Length: " LOOKUP-LEN ")"
+
+       IF NORMALIZED-EXT(1:ACTUAL-LEN) = NORMALIZED-LOOKUP(1:LOOKUP-LEN)
+                   MOVE MIME(I) TO MIME-TYPE
+                   DISPLAY "MIME type matched and set to: " MIME-TYPE
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM
+
+           DISPLAY "Final MIME type: " MIME-TYPE.
 
        HANDLE-FILE.
            MOVE SPACES TO FILE-BUFFER
@@ -319,6 +337,7 @@
                END-READ
            END-PERFORM
            
+           SUBTRACT 1 FROM FILE-SIZE
            DISPLAY "Final FILE-SIZE after reading: " FILE-SIZE.
            
        SEND-FILE-CONTENT.
@@ -355,32 +374,19 @@
            IF WS-RETURN-CODE < 0
                DISPLAY "Error sending header."
            ELSE
-               MOVE 1 TO BUFFER-OFFSET
-               MOVE 0 TO TOTAL-BYTES-SENT
+               CALL "send" USING 
+                   BY VALUE CLIENT-SOCKET
+                   BY REFERENCE FILE-BUFFER
+                   BY VALUE FILE-SIZE
+                   BY VALUE 0
+                   RETURNING WS-RETURN-CODE
+               END-CALL
                
-               PERFORM UNTIL TOTAL-BYTES-SENT >= FILE-SIZE
-                   COMPUTE SEND-LENGTH = FUNCTION MIN(
-                       CHUNK-SIZE, 
-                       FILE-SIZE - TOTAL-BYTES-SENT)
-                   
-                   CALL "send" USING 
-                       BY VALUE CLIENT-SOCKET
-                     BY REFERENCE FILE-BUFFER(BUFFER-OFFSET:SEND-LENGTH)
-                       BY VALUE SEND-LENGTH
-                       BY VALUE 0
-                       RETURNING WS-RETURN-CODE
-                   END-CALL
-                   
-                   IF WS-RETURN-CODE < 0
-                       DISPLAY "Error sending file content."
-                       EXIT PERFORM
-                   ELSE
-                       ADD WS-RETURN-CODE TO TOTAL-BYTES-SENT
-                       ADD WS-RETURN-CODE TO BUFFER-OFFSET
-                   END-IF
-               END-PERFORM
-               
-              DISPLAY "Sent " TOTAL-BYTES-SENT " of " FILE-SIZE " bytes"
+               IF WS-RETURN-CODE < 0
+                   DISPLAY "Error sending file content."
+               ELSE
+                DISPLAY "Sent " WS-RETURN-CODE " of " FILE-SIZE " bytes"
+               END-IF
            END-IF.
            
        HTTPERROR.
