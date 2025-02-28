@@ -11,11 +11,11 @@
        DATA DIVISION.
        FILE SECTION.
        FD  REQUEST-FILE.
-       01  REQUEST-RECORD    PIC X(1024).
+       01  REQUEST-RECORD    PIC X(1).
        
        WORKING-STORAGE SECTION.
        01  FULL-PATH         PIC X(512) VALUE SPACES.
-       01  FILE-BUFFER       PIC X(102400).
+       01  FILE-BUFFER       PIC X(1).
        01  FILE-SIZE         PIC S9(9) COMP-5 VALUE 0.
        01  SEND-LENGTH       PIC S9(5) COMP-5 VALUE 0.
        01  WS-CONTENT-LEN    PIC 9(9).
@@ -63,9 +63,10 @@
                10  EXTENSION      PIC X(10).
                10  MIME           PIC X(50).
        01  FILE-CONTENT        PIC X(102400) VALUE SPACES.
-       01  BYTES-READ          PIC 9(9) COMP VALUE 0.
+       01  BYTES-READ          PIC 9(4) COMP VALUE 0.
        01  TOTAL-BYTES-READ    PIC 9(9) COMP VALUE 0.
        01  CONTENT-LEN-STR     PIC Z(9)9.
+       01  BYTES-TO-READ     PIC S9(4) COMP VALUE 1024.
 
        PROCEDURE DIVISION.
        MAIN-LOGIC.
@@ -303,8 +304,6 @@
        MOVE SPACES TO FILE-CONTENT
        MOVE 0 TO TOTAL-BYTES-READ
     
-       DISPLAY "Starting to read the file..."
-    
        PERFORM READ-ENTIRE-FILE
     
        IF TOTAL-BYTES-READ > 0
@@ -316,38 +315,39 @@
         PERFORM HTTPERROR
        END-IF.
 
-        READ-ENTIRE-FILE.
-        MOVE SPACES TO FILE-CONTENT
-        MOVE 0 TO TOTAL-BYTES-READ
-    
+       READ-ENTIRE-FILE.
+       MOVE SPACES TO FILE-CONTENT
+       MOVE 0 TO TOTAL-BYTES-READ
+       MOVE 1 TO BYTES-TO-READ 
+
+       DISPLAY "Starting to read the file..."
+
        PERFORM UNTIL 1 = 0
         READ REQUEST-FILE
+            INTO FILE-BUFFER
             AT END
+                DISPLAY "End of file reached."
                 EXIT PERFORM
             NOT AT END
-                ADD 1 TO BYTES-READ
-                IF BYTES-READ <= FUNCTION LENGTH(FILE-CONTENT)
-                    MOVE FUNCTION LENGTH(REQUEST-RECORD) TO BYTES-READ
-                    IF TOTAL-BYTES-READ + BYTES-READ 
-                            <= FUNCTION LENGTH(FILE-CONTENT)
-                            MOVE REQUEST-RECORD TO 
-                           FILE-CONTENT(TOTAL-BYTES-READ + 1:BYTES-READ)
-                        ADD BYTES-READ TO TOTAL-BYTES-READ
-                    ELSE
-                        DISPLAY "File too large for buffer"
-                        EXIT PERFORM
-                    END-IF
+                MOVE FUNCTION LENGTH(FILE-BUFFER) TO BYTES-READ
+
+                IF BYTES-READ > 0
+                        MOVE FILE-BUFFER TO 
+                        FILE-CONTENT(TOTAL-BYTES-READ + 1: BYTES-READ)
+                    ADD BYTES-READ TO TOTAL-BYTES-READ
                 END-IF
         END-READ
-       END-PERFORM
-    
-       DISPLAY "Total bytes read: " TOTAL-BYTES-READ.
+                END-PERFORM
+
+
+           DISPLAY "Final total bytes read: " TOTAL-BYTES-READ.
+
 
        SEND-FILE-CONTENT.
        MOVE SPACES TO HTTP-HEADER
        MOVE TOTAL-BYTES-READ TO CONTENT-LEN-STR
        INSPECT CONTENT-LEN-STR REPLACING LEADING SPACES BY ZEROS
-    
+
        STRING 
         "HTTP/1.1 200 OK" DELIMITED BY SIZE
         X"0D0A" DELIMITED BY SIZE
@@ -362,7 +362,7 @@
         X"0D0A" DELIMITED BY SIZE
         INTO HTTP-HEADER
        END-STRING
-    
+
        CALL "send" USING 
         BY VALUE CLIENT-SOCKET
         BY REFERENCE HTTP-HEADER
@@ -370,7 +370,7 @@
         BY VALUE 0
         RETURNING WS-RETURN-CODE
        END-CALL
-    
+
        IF WS-RETURN-CODE > 0
         CALL "send" USING 
             BY VALUE CLIENT-SOCKET
@@ -385,10 +385,9 @@
         ELSE
             DISPLAY "Error sending file content: " WS-RETURN-CODE
         END-IF
-        ELSE
+       ELSE
         DISPLAY "Error sending header: " WS-RETURN-CODE
        END-IF.
-
 
        HTTPERROR.
            EVALUATE ERROR-CODE
