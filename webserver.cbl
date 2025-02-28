@@ -62,7 +62,11 @@
            05  MIME-ENTRY OCCURS 10 TIMES.
                10  EXTENSION      PIC X(10).
                10  MIME           PIC X(50).
-               
+       01  FILE-CONTENT        PIC X(102400) VALUE SPACES.
+       01  BYTES-READ          PIC 9(9) COMP VALUE 0.
+       01  TOTAL-BYTES-READ    PIC 9(9) COMP VALUE 0.
+       01  CONTENT-LEN-STR     PIC Z(9)9.
+
        PROCEDURE DIVISION.
        MAIN-LOGIC.
            PERFORM INITIALIZE-MIME-TYPE-LOOKUP
@@ -246,7 +250,8 @@
                MOVE 404 TO ERROR-CODE
                PERFORM HTTPERROR
            END-IF.
-           
+
+
        GET-FILE-EXTENSION.
            MOVE SPACES TO FILE-EXTENSION
            PERFORM VARYING I FROM LENGTH OF REQUEST-PATH BY -1 
@@ -279,7 +284,7 @@
 
            PERFORM VARYING I FROM 1 BY 1 UNTIL I > MIME-COUNT
                MOVE EXTENSION(I) TO NORMALIZED-LOOKUP
-       INSPECT NORMALIZED-LOOKUP REPLACING TRAILING SPACES BY LOW-VALUE
+        INSPECT NORMALIZED-LOOKUP REPLACING TRAILING SPACES BY LOW-VALUE
                COMPUTE LOOKUP-LEN = FUNCTION LENGTH(NORMALIZED-LOOKUP)
 
                DISPLAY "Comparing with MIME entry[" I "]: '"
@@ -295,100 +300,96 @@
            DISPLAY "Final MIME type: " MIME-TYPE.
 
        HANDLE-FILE.
-           MOVE SPACES TO FILE-BUFFER
-           MOVE 0 TO FILE-SIZE
-           
-           DISPLAY "Starting to read the file. Initial SIZE: " FILE-SIZE
-           
-           PERFORM READ-ENTIRE-FILE
-           
-           IF FILE-OK = "Y"
-               PERFORM SEND-FILE-CONTENT
-           ELSE
-               MOVE 404 TO ERROR-CODE
-               PERFORM HTTPERROR
-           END-IF.
-           
-       READ-ENTIRE-FILE.
-           MOVE SPACES TO FILE-BUFFER
-           MOVE 1 TO FILE-SIZE
-           
-           PERFORM UNTIL WS-FILE-STATUS NOT = "00"
-               READ REQUEST-FILE INTO REQUEST-RECORD
-                   AT END
-                       EXIT PERFORM
-                   NOT AT END
-                      IF FILE-SIZE + FUNCTION LENGTH(REQUEST-RECORD) <= 
-                           FUNCTION LENGTH(FILE-BUFFER)
-                           STRING REQUEST-RECORD DELIMITED BY SIZE
-                               INTO FILE-BUFFER
-                               WITH POINTER FILE-SIZE
-                           END-STRING
-                           
-                           COMPUTE FILE-SIZE = FILE-SIZE + 
-                               FUNCTION LENGTH(REQUEST-RECORD) - 1
-                               
-                        DISPLAY "Read " FUNCTION LENGTH(REQUEST-RECORD) 
-                               " bytes. Updated FILE-SIZE: " FILE-SIZE
-                       ELSE
-                           DISPLAY "File too large for buffer"
-                           EXIT PERFORM
-                       END-IF
-               END-READ
-           END-PERFORM
-           
-           SUBTRACT 1 FROM FILE-SIZE
-           DISPLAY "Final FILE-SIZE after reading: " FILE-SIZE.
-           
+       MOVE SPACES TO FILE-CONTENT
+       MOVE 0 TO TOTAL-BYTES-READ
+    
+       DISPLAY "Starting to read the file..."
+    
+       PERFORM READ-ENTIRE-FILE
+    
+       IF TOTAL-BYTES-READ > 0
+        DISPLAY "File read successfully, bytes read: " TOTAL-BYTES-READ
+        PERFORM SEND-FILE-CONTENT
+        ELSE
+        DISPLAY "File read failed, no bytes read."
+        MOVE 404 TO ERROR-CODE
+        PERFORM HTTPERROR
+       END-IF.
+
+        READ-ENTIRE-FILE.
+        MOVE SPACES TO FILE-CONTENT
+        MOVE 0 TO TOTAL-BYTES-READ
+    
+       PERFORM UNTIL 1 = 0
+        READ REQUEST-FILE
+            AT END
+                EXIT PERFORM
+            NOT AT END
+                ADD 1 TO BYTES-READ
+                IF BYTES-READ <= FUNCTION LENGTH(FILE-CONTENT)
+                    MOVE FUNCTION LENGTH(REQUEST-RECORD) TO BYTES-READ
+                    IF TOTAL-BYTES-READ + BYTES-READ 
+                            <= FUNCTION LENGTH(FILE-CONTENT)
+                            MOVE REQUEST-RECORD TO 
+                           FILE-CONTENT(TOTAL-BYTES-READ + 1:BYTES-READ)
+                        ADD BYTES-READ TO TOTAL-BYTES-READ
+                    ELSE
+                        DISPLAY "File too large for buffer"
+                        EXIT PERFORM
+                    END-IF
+                END-IF
+        END-READ
+       END-PERFORM
+    
+       DISPLAY "Total bytes read: " TOTAL-BYTES-READ.
+
        SEND-FILE-CONTENT.
-           MOVE SPACES TO HTTP-HEADER
-           MOVE FILE-SIZE TO WS-CONTENT-LEN
-           MOVE SPACES TO CONTENT-LENGTH
-           
-           MOVE WS-CONTENT-LEN TO CONTENT-LENGTH
-           INSPECT CONTENT-LENGTH REPLACING LEADING SPACES BY ZEROS
-           
-           STRING 
-               "HTTP/1.1 200 OK" DELIMITED BY SIZE
-               X"0D0A" DELIMITED BY SIZE
-               "Content-Type: " DELIMITED BY SIZE
-               FUNCTION TRIM(MIME-TYPE, TRAILING) DELIMITED BY SIZE
-               X"0D0A" DELIMITED BY SIZE
-               "Content-Length: " DELIMITED BY SIZE
-               FUNCTION TRIM(CONTENT-LENGTH, LEADING) DELIMITED BY SIZE
-               X"0D0A" DELIMITED BY SIZE
-               "Server: COBOL Web Server" DELIMITED BY SIZE
-               X"0D0A" DELIMITED BY SIZE
-               X"0D0A" DELIMITED BY SIZE
-               INTO HTTP-HEADER
-           END-STRING
-           
-           CALL "send" USING 
-               BY VALUE CLIENT-SOCKET
-               BY REFERENCE HTTP-HEADER
-               BY VALUE FUNCTION LENGTH(HTTP-HEADER)
-               BY VALUE 0
-               RETURNING WS-RETURN-CODE
-           END-CALL
-           
-           IF WS-RETURN-CODE < 0
-               DISPLAY "Error sending header."
-           ELSE
-               CALL "send" USING 
-                   BY VALUE CLIENT-SOCKET
-                   BY REFERENCE FILE-BUFFER
-                   BY VALUE FILE-SIZE
-                   BY VALUE 0
-                   RETURNING WS-RETURN-CODE
-               END-CALL
-               
-               IF WS-RETURN-CODE < 0
-                   DISPLAY "Error sending file content."
-               ELSE
-                DISPLAY "Sent " WS-RETURN-CODE " of " FILE-SIZE " bytes"
-               END-IF
-           END-IF.
-           
+       MOVE SPACES TO HTTP-HEADER
+       MOVE TOTAL-BYTES-READ TO CONTENT-LEN-STR
+       INSPECT CONTENT-LEN-STR REPLACING LEADING SPACES BY ZEROS
+    
+       STRING 
+        "HTTP/1.1 200 OK" DELIMITED BY SIZE
+        X"0D0A" DELIMITED BY SIZE
+        "Content-Type: " DELIMITED BY SIZE
+        FUNCTION TRIM(MIME-TYPE) DELIMITED BY SIZE
+        X"0D0A" DELIMITED BY SIZE
+        "Content-Length: " DELIMITED BY SIZE
+        FUNCTION TRIM(CONTENT-LEN-STR) DELIMITED BY SIZE
+        X"0D0A" DELIMITED BY SIZE
+        "Server: COBOL Web Server" DELIMITED BY SIZE
+        X"0D0A" DELIMITED BY SIZE
+        X"0D0A" DELIMITED BY SIZE
+        INTO HTTP-HEADER
+       END-STRING
+    
+       CALL "send" USING 
+        BY VALUE CLIENT-SOCKET
+        BY REFERENCE HTTP-HEADER
+        BY VALUE FUNCTION LENGTH(FUNCTION TRIM(HTTP-HEADER))
+        BY VALUE 0
+        RETURNING WS-RETURN-CODE
+       END-CALL
+    
+       IF WS-RETURN-CODE > 0
+        CALL "send" USING 
+            BY VALUE CLIENT-SOCKET
+            BY REFERENCE FILE-CONTENT
+            BY VALUE TOTAL-BYTES-READ
+            BY VALUE 0
+            RETURNING WS-RETURN-CODE
+        END-CALL
+        
+        IF WS-RETURN-CODE > 0
+            DISPLAY "Successfully sent " WS-RETURN-CODE " bytes"
+        ELSE
+            DISPLAY "Error sending file content: " WS-RETURN-CODE
+        END-IF
+        ELSE
+        DISPLAY "Error sending header: " WS-RETURN-CODE
+       END-IF.
+
+
        HTTPERROR.
            EVALUATE ERROR-CODE
                WHEN 404
@@ -398,7 +399,7 @@
                WHEN OTHER
                    PERFORM ERROR-500
            END-EVALUATE.
-           
+
        ERROR-404.
            MOVE SPACES TO RESPONSE
            STRING "HTTP/1.1 404 Not Found" DELIMITED BY SIZE
@@ -439,7 +440,7 @@
                "Content-Length: 117" DELIMITED BY SIZE
                X"0D0A0D0A" DELIMITED BY SIZE
        "<html><head><title>Error 405</title></head>" DELIMITED BY SIZE
-          "<body><h1>Error 405 </h1></body></html>" DELIMITED BY SIZE
+          "<body><h1>Error 405 </h1></body></html>" DELIMITED BY SIZE   
                INTO RESPONSE
            END-STRING
            
