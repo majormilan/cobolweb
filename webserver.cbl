@@ -263,31 +263,19 @@
            DISPLAY "File Extension: " FILE-EXTENSION
            PERFORM DETERMINE-MIME-TYPE.
            
-        DETERMINE-MIME-TYPE.
+       DETERMINE-MIME-TYPE.
         DISPLAY "Determining MIME: '" FILE-EXTENSION "'"
         MOVE DEFAULT-MIME TO MIME-TYPE
-    
         PERFORM VARYING I FROM 1 BY 1 UNTIL I > MIME-COUNT
-        MOVE FUNCTION TRIM(FILE-EXTENSION) TO TEMP-FILE-EXTENSION
-        MOVE FUNCTION TRIM(EXTENSION(I)) TO TEMP-EXTENSION
-        
-        DISPLAY "DEBUG: comparing '"
-                TEMP-FILE-EXTENSION
-                "' with '"
-                TEMP-EXTENSION
-                "' Length1: "
-                FUNCTION LENGTH(FUNCTION TRIM(TEMP-FILE-EXTENSION))
-                " Length2: "
-                FUNCTION LENGTH(FUNCTION TRIM(TEMP-EXTENSION))
-        
-        IF TEMP-FILE-EXTENSION = TEMP-EXTENSION
+         IF FUNCTION LOWER-CASE(FUNCTION TRIM(FILE-EXTENSION)) = 
+           FUNCTION LOWER-CASE(FUNCTION TRIM(EXTENSION(I)))
             MOVE MIME(I) TO MIME-TYPE
             DISPLAY "MIME type set to: " MIME-TYPE
             EXIT PERFORM
-        END-IF
+         END-IF
         END-PERFORM
-    
-        DISPLAY "Final MIME type: " MIME-TYPE.           
+        DISPLAY "Final MIME type: " MIME-TYPE.
+
        HANDLE-FILE.
            MOVE SPACES TO FILE-BUFFER
            MOVE 0 TO FILE-SIZE
