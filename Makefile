@@ -12,8 +12,12 @@ SERVICE_FILE = config/cobolweb.service
 # Default target
 all: $(COBOL_EXEC)
 
+# Create build directory if it doesn't exist
+build:
+	@mkdir -p build
+
 # Compile COBOL program
-$(COBOL_EXEC): $(COBOL_SRC)
+$(COBOL_EXEC): build $(COBOL_SRC)
 	@echo "Compiling COBOL source..."
 	cobc -x -o $(COBOL_EXEC) $(COBOL_SRC)
 
