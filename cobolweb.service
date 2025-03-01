@@ -1,0 +1,15 @@
+[Unit]
+Description=COBOL Web Server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/cobolweb
+WorkingDirectory=/var/www/html
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
