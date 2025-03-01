@@ -1,11 +1,11 @@
 # Variables
-COBOL_SRC = webserver.cbl
-COBOL_EXEC = cobolweb
+COBOL_SRC = sources/webserver.cbl
+COBOL_EXEC = build/cobolweb
 INSTALL_PATH = /usr/local/bin
 CONFIG_DIR = /etc/cobolweb
-CONFIG_FILE = cobolweb.conf
+CONFIG_FILE = config/cobolweb.conf
 SYSTEMD_DIR = /etc/systemd/system
-SERVICE_FILE = cobolweb.service
+SERVICE_FILE = config/cobolweb.service
 
 .PHONY: all clean install uninstall
 
@@ -34,9 +34,9 @@ uninstall:
 	@echo "Uninstalling COBOL web server..."
 	systemctl stop cobolweb
 	systemctl disable cobolweb
-	rm -f $(INSTALL_PATH)/$(COBOL_EXEC)
-	rm -f $(CONFIG_DIR)/$(CONFIG_FILE)
-	rm -f $(SYSTEMD_DIR)/$(SERVICE_FILE)
+	rm -f $(INSTALL_PATH)/cobolweb
+	rm -f $(CONFIG_DIR)/cobolweb.conf
+	rm -f $(SYSTEMD_DIR)/cobolweb.service
 	systemctl daemon-reload
 
 # Clean up build files

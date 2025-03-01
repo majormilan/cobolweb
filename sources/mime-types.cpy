@@ -1,8 +1,8 @@
-            INITIALIZE-MIME-TYPE-LOOKUP.
-            MOVE ".html" TO EXTENSION(1)
-            MOVE "text/html" TO MIME(1)
-            MOVE ".htm" TO EXTENSION(2)
-          MOVE "text/html" TO MIME(2)
+        INITIALIZE-MIME-TYPE-LOOKUP.
+        MOVE ".html" TO EXTENSION(1)
+        MOVE "text/html" TO MIME(1)
+        MOVE ".htm" TO EXTENSION(2)
+        MOVE "text/html" TO MIME(2)
         MOVE ".css" TO EXTENSION(3)
         MOVE "text/css" TO MIME(3)
         MOVE ".js" TO EXTENSION(4)
