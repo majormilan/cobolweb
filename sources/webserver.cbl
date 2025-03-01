@@ -1,5 +1,5 @@
       *****************************************************************
-      * PROGRAM:    COBOLWEB                                          *
+      * PROGRAM:    COBWEB                                          *
       * AUTHOR:     MILÁN ATANÁZ MAJOR                                *
       * DATE:       01-MAR-2025                                       *
       * PURPOSE:    IMPLEMENTS A BASIC HTTP SERVER IN COBOL           *
@@ -33,7 +33,7 @@
        WORKING-STORAGE SECTION.
       *    SERVER CONFIGURATION VARIABLES                             *
        01  CONFIG-FILE-PATH  PIC X(255) 
-          VALUE "/etc/cobolweb/cobolweb.conf".
+          VALUE "/etc/cobweb/cobweb.conf".
        01  CONFIG-VARIABLE   PIC X(20).
        01  CONFIG-VALUE      PIC X(80).
        01  ROOT-FOLDER       PIC X(255) VALUE "/var/www/html/".

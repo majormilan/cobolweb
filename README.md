@@ -1,16 +1,16 @@
-# cobolweb
+# cobweb
 
 ![COBOL](https://img.shields.io/badge/COBOL-0000FF?style=flat&logo=COBOL&logoColor=white)
 
-Welcome to **CobolWeb**! 🎉
+Welcome to **CobWeb**! 🎉
 
-Honestly, I did it on a dare. CobolWeb is a simple webserver, written in COBOL, that can serve static websites. It serves the most common MIME types and can handle basic HTTP GET requests. Minimal further improvement can be expected, as the next step is implementing a correct logging system for the webserver.
+Honestly, I did it on a dare. CobWeb is a simple webserver, written in COBOL, that can serve static websites. It serves the most common MIME types and can handle basic HTTP GET requests. Minimal further improvement can be expected, as the next step is implementing a correct logging system for the webserver.
 
 The program does not have any explicit purpose other than to prove that such program, a webserver written in COBOL exists.
 
 The webserver, build, makefile was tested only on Debian 12 (bookworm) and GNUCobol 3.1.2.0
 
-The minimal configuration file for the server can be edited under /etc/cobolweb/cobolweb.conf
+The minimal configuration file for the server can be edited under /etc/cobweb/cobweb.conf
 
 ## What You Need
 
@@ -39,7 +39,7 @@ sudo make install
 
 This will:
 - Put the binary in `/usr/local/bin`
-- Copy the config file to `/etc/cobolweb`
+- Copy the config file to `/etc/cobweb`
 - Add the systemd service file to `/etc/systemd/system`
 
 ### Uninstall It
@@ -51,10 +51,10 @@ sudo make uninstall
 ```
 
 This will:
-- Stop the cobolweb service
-- Disable the cobolweb service
+- Stop the cobweb service
+- Disable the cobweb service
 - Remove the binary from `/usr/local/bin`
-- Delete the config file from `/etc/cobolweb`
+- Delete the config file from `/etc/cobweb`
 - Remove the systemd service file from `/etc/systemd/system`
 - Reload systemd
 
@@ -80,11 +80,11 @@ make clean
 
 ## Configuration
 
-The config file is in `config/cobolweb.conf`. Feel free to tweak it to suit your needs.
+The config file is in `config/cobweb.conf`. Feel free to tweak it to suit your needs.
 
 ## Systemd Service
 
-The service file is in `config/cobolweb.service`. This file tells systemd how to manage your web server.
+The service file is in `config/cobweb.service`. This file tells systemd how to manage your web server.
 
 ## Why COBOL?
 
