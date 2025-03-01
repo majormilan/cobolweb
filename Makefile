@@ -7,11 +7,14 @@ CONFIG_FILE = config/cobolweb.conf
 SYSTEMD_DIR = /etc/systemd/system
 SERVICE_FILE = config/cobolweb.service
 
-.PHONY: all clean install uninstall
+.PHONY: all clean install uninstall run
 
 # Default target
-all: $(COBOL_EXEC)
+all: check-root $(COBOL_EXEC)
 
+# Ensure the script is run as root
+check-root:
+	@if [ "$$(id -u)" -ne 0 ]; then echo "This script must be run as root"; exit 1; fi
 # Create build directory if it doesn't exist
 build:
 	@mkdir -p build
@@ -28,7 +31,11 @@ install: $(COBOL_EXEC)
 	install -m 755 $(COBOL_EXEC) $(INSTALL_PATH)
 	install -d $(CONFIG_DIR)
 	install -m 644 $(CONFIG_FILE) $(CONFIG_DIR)
+
+# Run the systemd service
+run: install
 	install -m 644 $(SERVICE_FILE) $(SYSTEMD_DIR)
+	@echo "Starting COBOL web server..."
 	systemctl daemon-reload
 	systemctl enable cobolweb
 	systemctl start cobolweb

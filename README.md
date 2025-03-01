@@ -2,9 +2,15 @@
 
 ![COBOL](https://img.shields.io/badge/COBOL-0000FF?style=flat&logo=COBOL&logoColor=white)
 
-Welcome to **cobolweb**! 🎉
+Welcome to **CobolWeb**! 🎉
 
-cobolweb is a proof of concept program designed to show that COBOL can handle sockets, ports, and web services. Yep, you heard that right – we're using COBOL to run a web server! 🚀
+Honestly, I did it on a dare. CobolWeb is a simple webserver, written in COBOL, that can serve static websites. It serves the most common MIME types and can handle basic HTTP GET requests. Minimal further improvement can be expected, as the next step is implementing a correct logging system for the webserver.
+
+The program does not have any explicit purpose other than to prove that such program, a webserver written in COBOL exists.
+
+The webserver, build, makefile was tested only on Debian 12 (bookworm) and GNUCobol 3.1.2.0
+
+The minimal configuration file for the server can be edited under /etc/cobolweb/cobolweb.conf
 
 ## What You Need
 
@@ -35,8 +41,6 @@ This will:
 - Put the binary in `/usr/local/bin`
 - Copy the config file to `/etc/cobolweb`
 - Add the systemd service file to `/etc/systemd/system`
-- Reload systemd
-- Enable and start the cobolweb service
 
 ### Uninstall It
 
@@ -53,6 +57,18 @@ This will:
 - Delete the config file from `/etc/cobolweb`
 - Remove the systemd service file from `/etc/systemd/system`
 - Reload systemd
+
+
+### Systemd service
+
+
+```sh
+make run
+```
+This will:
+- Install the systemd service
+- Enables the systemd service
+- Starts the systemd service
 
 ### Clean Up
 
