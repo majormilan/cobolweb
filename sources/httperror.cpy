@@ -1,4 +1,6 @@
         HTTPERROR.
+            MOVE SPACES TO RESPONSE
+
             EVALUATE ERROR-CODE
                 WHEN 404
                     PERFORM ERROR-404
@@ -8,10 +10,23 @@
                     PERFORM ERROR-500
             END-EVALUATE.
 
+            CALL 'send' USING
+                BY VALUE CLIENT-SOCKET
+                BY REFERENCE RESPONSE
+             BY VALUE FUNCTION CONTENT-LENGTH (RESPONSE)
+                BY VALUE 0
+                RETURNING WS-RETURN-CODE
+            END-CALL
+
+            IF WS-RETURN-CODE < 0
+                DISPLAY "Error sending response for error-code "
+                        ERROR-CODE "."
+            END-IF.
+
         ERROR-404.
             DISPLAY "Error 404: File not found"
+            
 
-            MOVE SPACES TO RESPONSE
             STRING "HTTP/1.1 404 Not Found" DELIMITED BY SIZE
                 X"0D0A" DELIMITED BY SIZE
                 "Content-Type: text/html" DELIMITED BY SIZE
@@ -26,23 +41,9 @@
                 INTO RESPONSE
             END-STRING
 
-            CALL 'send' USING
-                BY VALUE CLIENT-SOCKET
-                BY REFERENCE RESPONSE
-             BY VALUE FUNCTION CONTENT-LENGTH (RESPONSE)
-                BY VALUE 0
-                RETURNING WS-RETURN-CODE
-            END-CALL
-
-            IF WS-RETURN-CODE < 0
-                DISPLAY "Error sending 404 response."
-            END-IF.
-
         ERROR-405.
-            
             DISPLAY "Error 405: Method Not Allowed"
 
-            MOVE SPACES TO RESPONSE
             STRING "HTTP/1.1 405 Method Not Allowed" DELIMITED BY SIZE
                 X"0D0A" DELIMITED BY SIZE
                 "Content-Type: text/html" DELIMITED BY SIZE
@@ -55,24 +56,11 @@
           "<body><h1>Error 405 </h1></body></html>" DELIMITED BY SIZE
                X"00" DELIMITED BY SIZE
                 INTO RESPONSE
-            END-STRING
-
-            CALL 'send' USING
-                BY VALUE CLIENT-SOCKET
-                BY REFERENCE RESPONSE
-             BY VALUE FUNCTION CONTENT-LENGTH(RESPONSE)
-                BY VALUE 0
-                RETURNING WS-RETURN-CODE
-            END-CALL
-
-            IF WS-RETURN-CODE < 0
-                DISPLAY "Error sending 405 response."
-            END-IF.
+            END-STRING.
 
        ERROR-500.
            DISPLAY "Error 500: Internal Server Error"
 
-           MOVE SPACES TO RESPONSE
            STRING "HTTP/1.1 500 Internal Server Error" DELIMITED BY SIZE
                X"0D0A" DELIMITED BY SIZE
                "Content-Type: text/html" DELIMITED BY SIZE
@@ -85,16 +73,4 @@
            "<body><h1>Error 500</h1></body></html>" DELIMITED BY SIZE
                X"00" DELIMITED BY SIZE
                INTO RESPONSE
-           END-STRING
-
-           CALL 'send' USING
-               BY VALUE CLIENT-SOCKET
-               BY REFERENCE RESPONSE
-             BY VALUE FUNCTION CONTENT-LENGTH(RESPONSE)
-               BY VALUE 0
-               RETURNING WS-RETURN-CODE
-           END-CALL
-
-           IF WS-RETURN-CODE < 0
-               DISPLAY "Error sending 500 response."
-           END-IF.
+           END-STRING.
