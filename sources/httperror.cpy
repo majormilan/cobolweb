@@ -13,7 +13,7 @@
             CALL 'send' USING
                 BY VALUE CLIENT-SOCKET
                 BY REFERENCE RESPONSE
-             BY VALUE FUNCTION CONTENT-LENGTH (RESPONSE)
+                BY VALUE FUNCTION LENGTH(FUNCTION TRIM(RESPONSE))
                 BY VALUE 0
                 RETURNING WS-RETURN-CODE
             END-CALL
@@ -39,7 +39,7 @@
            "<body>404 Not Found</body></html>" DELIMITED BY SIZE
                X"00" DELIMITED BY SIZE
                 INTO RESPONSE
-            END-STRING
+                END-STRING.
 
         ERROR-405.
             DISPLAY "Error 405: Method Not Allowed"
@@ -52,7 +52,7 @@
                 X"0D0A" DELIMITED BY SIZE
                 "Content-Length: 117" DELIMITED BY SIZE
                 X"0D0A0D0A" DELIMITED BY SIZE
-        "<html><head><title>Error 405</title></head>" DELIMITED BY SIZE
+         "<html><head><title>Error 405</title></head>" DELIMITED BY SIZE
           "<body><h1>Error 405 </h1></body></html>" DELIMITED BY SIZE
                X"00" DELIMITED BY SIZE
                 INTO RESPONSE
@@ -69,7 +69,7 @@
                X"0D0A" DELIMITED BY SIZE
                "Content-Length: 121" DELIMITED BY SIZE
                X"0D0A0D0A" DELIMITED BY SIZE
-       "<html><head><title>Error 500</title></head>" DELIMITED BY SIZE
+        "<html><head><title>Error 500</title></head>" DELIMITED BY SIZE
            "<body><h1>Error 500</h1></body></html>" DELIMITED BY SIZE
                X"00" DELIMITED BY SIZE
                INTO RESPONSE
