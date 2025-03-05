@@ -32,7 +32,8 @@
        01  CONFIG-RECORD    PIC X(100). 
        WORKING-STORAGE SECTION.
       *    SERVER CONFIGURATION VARIABLES                             *
-       01  CONFIG-FILE-PATH  PIC X(255) 
+       01  CONFIG-FILE-PATH  PIC X(255).
+          88 CONFIG-FILE-DEFAULT
           VALUE "/etc/cobweb/cobweb.conf".
        01  CONFIG-VARIABLE   PIC X(20).
        01  CONFIG-VALUE      PIC X(80).
@@ -70,13 +71,13 @@
        01  IP-PROTO          PIC S9(4) COMP-5 VALUE 0.
        01  SERVER-SOCKET     PIC S9(4) COMP-5 VALUE 0.
        01  CLIENT-SOCKET     PIC S9(4) COMP-5 VALUE 0.
-       01  MY-PORT-VALUE     PIC S9(4) COMP-5.
       *    SOCKET ADDRESS STRUCTURE                                   *
        01  MY-ADDR.
            05  FAMILY        PIC S9(4) COMP-5 VALUE 2.
-           05  MY-PORT       PIC S9(4) COMP-5.
-           05  INET-ADDR     PIC X(4) VALUE LOW-VALUE.
-           05  FILLER        PIC X(8) VALUE LOW-VALUE.
+           05  FILLER.
+               07  MY-PORT   PIC S9(4) COMP.  *> network byte order
+               07  INET-ADDR PIC X(4) VALUE LOW-VALUE.
+               07  FILLER    PIC X(8) VALUE LOW-VALUE.
       *    ERROR HANDLING                                             *
        01  ERROR-CODE        PIC 9(3).
        01  RESPONSE          PIC X(4096) VALUE SPACES.
@@ -118,6 +119,10 @@
       * READ SERVER CONFIGURATION FROM FILE                           *
       *****************************************************************
        READ-CONFIG-FILE.
+          ACCEPT CONFIG-FILE-PATH FROM ENVIRONMENT "COBWEB_CONFIG"
+            ON EXCEPTION
+               SET CONFIG-FILE-DEFAULT TO TRUE
+          END-ACCEPT
           OPEN INPUT CONFIG-FILE
           IF WS-FILE-STATUS NOT = "00"
               DISPLAY "Error opening config file: " WS-FILE-STATUS
@@ -160,11 +165,7 @@
       *****************************************************************
        INITIALIZE-SERVER.
       *    CONVERT PORT NUMBER TO NETWORK BYTE ORDER                  *
-           MOVE PORT-NUMBER TO MY-PORT-VALUE
-           CALL "htons" USING BY VALUE MY-PORT-VALUE
-               RETURNING MY-PORT-VALUE
-           END-CALL
-           MOVE MY-PORT-VALUE TO MY-PORT OF MY-ADDR
+           MOVE PORT-NUMBER TO MY-PORT OF MY-ADDR
            DISPLAY "Starting COBOL Web Server on port " PORT-NUMBER
            DISPLAY "Serving files from: " ROOT-FOLDER
            

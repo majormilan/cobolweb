@@ -8,13 +8,13 @@ Honestly, I did it on a dare. CobWeb is a simple webserver, written in COBOL, th
 
 The program does not have any explicit purpose other than to prove that such program, a webserver written in COBOL exists.
 
-The webserver, build, makefile was tested only on Debian 12 (bookworm) and GNUCobol 3.1.2.0
+The webserver, build, makefile was tested only on Debian 12 (bookworm) and GnuCOBOL 3.1.2.0
 
 The minimal configuration file for the server can be edited under /etc/cobweb/cobweb.conf
 
 ## What You Need
 
-- GNUCobol
+- GnuCOBOL
 - make utility
 - systemd (optional, but the Makefile assumes that you run systemd)
 
@@ -31,7 +31,7 @@ The binary will be in the build directory.
 
 ### Install It
 
-Run this to install the web server:
+Run this to install the web server (root rights needed):
 
 ```sh
 sudo make install
@@ -44,7 +44,7 @@ This will:
 
 ### Uninstall It
 
-Run this to uninstall the web server:
+Run this to uninstall the web server and its systemd service (root rights needed):
 
 ```sh
 sudo make uninstall
@@ -60,6 +60,8 @@ This will:
 
 
 ### Systemd service
+
+Install (if needed) and run the server (root rights needed):
 
 
 ```sh
@@ -80,11 +82,13 @@ make clean
 
 ## Configuration
 
-The config file is in `config/cobweb.conf`. Feel free to tweak it to suit your needs.
+The config file is in `config/cobweb.conf`. Feel free to tweak it to suit your needs. It includes the port number to bind to. 
+You may run the webserver binary locally by setting `COBWEB_CONFIG` to a different file.
 
 ## Systemd Service
 
-The service file is in `config/cobweb.service`. This file tells systemd how to manage your web server.
+The service file is in `config/cobweb.service`. This file tells systemd how to manage your web server.  
+**Warning:** the default is for the webserver to run as root, which should only be done on test system. You may create a new user and assign it in the service configuration. 
 
 ## Why COBOL?
 

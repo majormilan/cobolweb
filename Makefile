@@ -10,11 +10,12 @@ SERVICE_FILE = config/cobweb.service
 .PHONY: all clean install uninstall run
 
 # Default target
-all: check-root $(COBOL_EXEC)
+all: $(COBOL_EXEC)
 
-# Ensure the script is run as root
+# Ensure the target is run as root
 check-root:
-	@if [ "$$(id -u)" -ne 0 ]; then echo "This script must be run as root"; exit 1; fi
+	@if [ "$$(id -u)" -ne 0 ]; then echo "This target can only be executed as root"; exit 1; fi
+
 # Create build directory if it doesn't exist
 build:
 	@mkdir -p build
@@ -25,7 +26,7 @@ $(COBOL_EXEC): build $(COBOL_SRC)
 	cobc -x -o $(COBOL_EXEC) $(COBOL_SRC)
 
 # Install the binary, config file, and systemd service
-install: $(COBOL_EXEC)
+install: check-root $(COBOL_EXEC)
 	@echo "Installing cobweb server..."
 	install -d $(INSTALL_PATH)
 	install -m 755 $(COBOL_EXEC) $(INSTALL_PATH)
@@ -33,7 +34,7 @@ install: $(COBOL_EXEC)
 	install -m 644 $(CONFIG_FILE) $(CONFIG_DIR)
 
 # Run the systemd service
-run: install
+run: check-root install
 	install -m 644 $(SERVICE_FILE) $(SYSTEMD_DIR)
 	@echo "Starting cobweb server..."
 	systemctl daemon-reload
@@ -41,7 +42,7 @@ run: install
 	systemctl start cobweb
 
 # Uninstall the binary, config file, and systemd service
-uninstall:
+uninstall: check-root
 	@echo "Uninstalling cobweb server..."
 	systemctl stop cobweb
 	systemctl disable cobweb
