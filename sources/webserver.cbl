@@ -100,7 +100,8 @@
        01  BYTES-READ          PIC 9(4) COMP VALUE 0.
        01  TOTAL-BYTES-READ    PIC 9(9) COMP VALUE 0.
        01  CONTENT-LEN-STR     PIC Z(9)9.
-       01  BYTES-TO-READ     PIC S9(4) COMP VALUE 1024.
+      *01  BYTES-TO-READ       PIC S9(4) COMP VALUE 1024.
+       78  LF                  VALUE x'0d0a'.
       *****************************************************************
       * PROCEDURE DIVISION CONTAINS PROGRAM LOGIC                     *
       *****************************************************************
@@ -316,11 +317,8 @@
            
       *    BUILD FULL PATH TO FILE                                    *
            MOVE SPACES TO FULL-PATH
-           INSPECT ROOT-FOLDER REPLACING TRAILING SPACES BY LOW-VALUES
-           INSPECT REQUEST-PATH REPLACING TRAILING SPACES BY LOW-VALUES
-           
-           STRING ROOT-FOLDER DELIMITED BY LOW-VALUES
-               REQUEST-PATH DELIMITED BY LOW-VALUES
+           STRING ROOT-FOLDER REQUEST-PATH
+               DELIMITED BY SPACE
                INTO FULL-PATH
            END-STRING
            
@@ -418,7 +416,7 @@
       *    INITIALIZE FILE CONTENT BUFFER                             *
        MOVE SPACES TO FILE-CONTENT
        MOVE 0 TO TOTAL-BYTES-READ
-       MOVE 1 TO BYTES-TO-READ 
+      *MOVE 1 TO BYTES-TO-READ 
       *    READ FILE BYTE BY BYTE UNTIL END OF FILE                   *
        PERFORM UNTIL 1 = 0
            READ REQUEST-FILE
@@ -444,20 +442,16 @@
        MOVE SPACES TO HTTP-HEADER
       *    CONVERT CONTENT LENGTH TO STRING                           *
        MOVE TOTAL-BYTES-READ TO CONTENT-LEN-STR
-       INSPECT CONTENT-LEN-STR REPLACING LEADING SPACES BY ZEROS
+      *INSPECT CONTENT-LEN-STR REPLACING LEADING SPACES BY ZEROS
       *    BUILD HTTP RESPONSE HEADER                                 *
        STRING 
-           "HTTP/1.1 200 OK" DELIMITED BY SIZE
-           X"0D0A" DELIMITED BY SIZE
-           "Content-Type: " DELIMITED BY SIZE
-           FUNCTION TRIM(MIME-TYPE) DELIMITED BY SIZE
-           X"0D0A" DELIMITED BY SIZE
-           "Content-Length: " DELIMITED BY SIZE
-           FUNCTION TRIM(CONTENT-LEN-STR) DELIMITED BY SIZE
-           X"0D0A" DELIMITED BY SIZE
-           "Server: COBOL Web Server" DELIMITED BY SIZE
-           X"0D0A" DELIMITED BY SIZE
-           X"0D0A" DELIMITED BY SIZE
+           "HTTP/1.1 200 OK"                                   LF
+           "Content-Type: "   DELIMITED BY SIZE
+           MIME-TYPE          DELIMITED BY SPACE
+           LF
+           "Content-Length: "  FUNCTION TRIM (CONTENT-LEN-STR) LF
+           "Server: COBOL Web Server" LF
+           LF                 DELIMITED BY SIZE
            INTO HTTP-HEADER
        END-STRING
       *    SEND HTTP HEADER TO CLIENT                                 *
